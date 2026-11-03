@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="BHAVE" />
+  <meta name="theme-color" content="#FFD54F" />
+  <title>BHAVE</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <style>
+    :root{ --bg:#8BC34A; --yellow:#FFD54F; --border:#000; --plus:#3B8F1E; --minus:#D93025; }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; height:100%; }
+    body{
+      background:var(--bg); color:#111;
+      font-family:"Nunito", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-tap-highlight-color:transparent;
+    }
+    button{ font:inherit; color:inherit; cursor:pointer; touch-action:manipulation; }
+    button:focus-visible{ outline:4px solid #1565c0; outline-offset:2px; }
+    .app{ min-height:100%; display:flex; flex-direction:column; }
+    header{
+      position:sticky; top:0; z-index:5; background:var(--yellow); border-bottom:5px solid var(--border);
+      padding:10px 14px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+      display:flex; align-items:center; gap:10px; min-height:58px;
+    }
+    header h1{ margin:0; font-size:1.35rem; font-weight:900; flex:1; display:flex; align-items:center; gap:8px; }
+    .back{ border:3px solid var(--border); background:#fff; border-radius:12px; padding:6px 12px; font-weight:900; font-size:1rem; }
+    .who-chip{ border:3px solid var(--border); background:#fff; border-radius:999px; padding:4px 10px; font-weight:800; font-size:.85rem; }
+    .pending-chip{ border:3px solid var(--border); background:#fff; border-radius:999px; padding:4px 10px; font-weight:800; font-size:.8rem; white-space:nowrap; }
+    .pending-chip.stuck{ background:#FFB74D; }
+    .chip{ color:#fff; border-radius:999px; padding:2px 14px; font-weight:900; }
+    main{ flex:1; padding:14px; max-width:560px; width:100%; margin:0 auto; }
+    .hint{ font-weight:800; margin:2px 2px 12px; color:#173404; }
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .student{
+      border:4px solid var(--border); border-radius:18px; min-height:92px; color:#fff;
+      font-size:1.8rem; font-weight:900; letter-spacing:.02em;
+    }
+    .student:active, .pm:active, .big:active{ transform:scale(.97); }
+    .rows{ display:flex; flex-direction:column; gap:12px; }
+    .row{
+      display:grid; grid-template-columns:72px 1fr 72px; min-height:78px;
+      border:4px solid var(--border); border-radius:16px; overflow:hidden; background:#fff;
+    }
+    .pm{ border:0; color:#fff; font-size:2.2rem; font-weight:900; line-height:1; }
+    .pm.minus{ background:var(--minus); }
+    .pm.plus{ background:var(--plus); }
+    .pm:disabled{ opacity:.35; }
+    .mid{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:4px 6px; }
+    .mid .name{ font-weight:800; font-size:1rem; line-height:1.15; }
+    .mid .val{ font-weight:900; font-size:1.5rem; font-variant-numeric:tabular-nums; }
+    .row.has .mid{ background:#FFF1B8; }
+    footer{
+      position:sticky; bottom:0; background:var(--yellow); border-top:5px solid var(--border);
+      padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; gap:10px;
+    }
+    .when{
+      display:flex; align-items:center; gap:10px; background:#fff; border:4px solid var(--border);
+      border-radius:14px; padding:4px 12px; min-height:52px; font-weight:900;
+    }
+    .when-label{ font-size:1.05rem; }
+    .when input{
+      font:inherit; font-weight:900; font-size:1.3rem; border:0; background:transparent; color:#111;
+      min-width:0; flex:0 1 auto; padding:4px 0;
+    }
+    .when input:focus-visible{ outline:3px solid #1565c0; border-radius:6px; }
+    .when-hint{ margin-left:auto; font-size:.8rem; font-weight:800; color:#555; white-space:nowrap; }
+    .when.edited{ background:#FFF1B8; }
+    .when.edited .when-hint{ color:#7a4b00; }
+    .toggle{ display:grid; grid-template-columns:1fr 1fr; border:4px solid var(--border); border-radius:14px; overflow:hidden; }
+    .toggle button{ border:0; background:#fff; font-weight:900; font-size:1.1rem; min-height:50px; }
+    .toggle button[aria-pressed="true"]{ background:#111; color:#fff; }
+    .actions{ display:grid; grid-template-columns:1fr 1.5fr; gap:10px; }
+    .big{ border:4px solid var(--border); border-radius:14px; min-height:58px; font-weight:900; font-size:1.2rem; }
+    .cancel{ background:#fff; }
+    .submit{ background:#2E7D32; color:#fff; }
+    .submit:disabled{ background:#c9d6c9; color:#555; }
+    .pick{ display:flex; flex-direction:column; gap:12px; }
+    .pick .big{ background:#fff; min-height:72px; font-size:1.4rem; }
+    .msg{ background:#fff; border:4px solid var(--border); border-radius:16px; padding:16px; font-weight:800; text-align:center; }
+    .toast{
+      position:fixed; left:50%; bottom:calc(150px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%);
+      background:#111; color:#fff; font-weight:900; padding:12px 18px; border-radius:999px; max-width:92vw; text-align:center;
+      box-shadow:0 4px 14px rgba(0,0,0,.3); opacity:0; pointer-events:none; transition:opacity .2s; z-index:20;
+    }
+    .toast.show{ opacity:1; }
+    .toast.home{ bottom:calc(24px + env(safe-area-inset-bottom,0px)); }
+    [hidden]{ display:none !important; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <button class="back" id="btnBack" hidden aria-label="Back to students">‹ Back</button>
+    <h1 id="title">BHAVE</h1>
+    <button class="pending-chip" id="pendingChip" hidden aria-label="Entries waiting to send. Tap to try now."></button>
+    <button class="who-chip" id="btnWho" hidden aria-label="Change who is using this phone"></button>
+  </header>
+
+  <!-- First time only: who is using this phone -->
+  <main id="screenWho" hidden>
+    <p class="hint">Who's using this phone? (You'll only be asked once.)</p>
+    <div class="pick" id="staffList"></div>
+    <div class="msg" id="staffMsg" hidden></div>
+  </main>
+
+  <!-- Screen 1: students -->
+  <main id="screenStudents" hidden>
+    <p class="hint">Tap a student</p>
+    <div class="grid" id="studentGrid"></div>
+    <div class="msg" id="studentsMsg" hidden></div>
+  </main>
+
+  <!-- Screen 2: behaviors for one student -->
+  <main id="screenBehaviors" hidden>
+    <div class="rows" id="behaviorRows"></div>
+  </main>
+  <footer id="behaviorFooter" hidden>
+    <label class="when" for="whenInput">
+      <span class="when-label">When:</span>
+      <input type="time" id="whenInput" aria-label="When it happened" />
+      <span class="when-hint" aria-hidden="true">✎ tap to change</span>
+    </label>
+    <div class="toggle" role="group" aria-label="Measure">
+      <button id="modeCount" aria-pressed="true">Count</button>
+      <button id="modeTime" aria-pressed="false">Time (minutes)</button>
+    </div>
+    <div class="actions">
+      <button class="big cancel" id="btnCancel">Cancel</button>
+      <button class="big submit" id="btnSubmit" disabled>Submit</button>
+    </div>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ---- Connection (filled in once; the aides never see or change this) ----
+const ENDPOINT = "https://script.google.com/macros/s/AKfycbwMJRoN3d60kIpNjXKR8R5JaXz8LMoPqK3ZKd0DNr9fp-c1proAJVMU0M5JLVlQJoPO0A/exec";
+const KEY = "y7nkjobi14jz78w5";
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch { return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch {} },
+};
+let students = JSON.parse(store.get("bhave:students") || "[]");
+let staff = JSON.parse(store.get("bhave:staff") || "[]");
+let current = null;            // student being logged
+let mode = "count";            // "count" | "min"
+let tally = {};                // behavior -> { count, min }
+
+/* ---------- talking to the Sheet ---------- */
+async function request(params){
+  const url = new URL(ENDPOINT);
+  Object.entries({ ...params, key: KEY }).forEach(([k, v]) => url.searchParams.set(k, v));
+  let res;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 25000);
+  try { res = await fetch(url.toString(), { cache: "no-store", signal: ctl.signal }); }
+  catch { throw new Error("no connection"); }
+  finally { clearTimeout(timer); }
+  let data;
+  try { data = JSON.parse(await res.text()); } catch { throw new Error("Google error " + res.status); }
+  if (!data.ok) throw new Error(data.error || "error");
+  return data;
+}
+
+async function loadStudents(){
+  try {
+    const data = await request({ action: "setup" });
+    students = data.students || [];
+    staff = data.staff || [];
+    store.set("bhave:students", JSON.stringify(students));
+    store.set("bhave:staff", JSON.stringify(staff));
+    $("studentsMsg").hidden = true;
+  } catch (err) {
+    if (!students.length) {
+      $("studentsMsg").hidden = false;
+      $("studentsMsg").textContent = "Can't load students. Check the internet connection and reopen the app.";
+    }
+  }
+  renderStudents();
+  renderStaff();
+}
+
+/* ---------- screens ---------- */
+function show(screen){
+  ["screenWho", "screenStudents", "screenBehaviors"].forEach(id => $(id).hidden = id !== screen);
+  $("behaviorFooter").hidden = screen !== "screenBehaviors";
+  $("btnBack").hidden = screen !== "screenBehaviors";
+  $("btnWho").hidden = screen !== "screenStudents";
+  window.scrollTo(0, 0);
+}
+
+function renderStudents(){
+  const grid = $("studentGrid");
+  grid.innerHTML = "";
+  students.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "student";
+    b.style.background = s.color;
+    b.textContent = s.initials;
+    b.addEventListener("click", () => openStudent(s));
+    grid.appendChild(b);
+  });
+  if (!students.length && $("studentsMsg").hidden) {
+    $("studentsMsg").hidden = false;
+    $("studentsMsg").textContent = "Loading students…";
+  }
+}
+
+function nowHHMM(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+function openStudent(s){
+  current = s;
+  $("toast").classList.remove("show"); // don't cover Cancel/Submit with the last "Saved" message
+  // "When" is captured as the screen opens and stays put, so a delay before Submit doesn't shift it
+  $("whenInput").value = nowHHMM();
+  $("whenInput").max = nowHHMM();
+  document.querySelector(".when").classList.remove("edited");
+  tally = {};
+  s.behaviors.forEach(b => tally[b] = { count: 0, min: 0 });
+  setMode("count");
+  $("title").innerHTML = "";
+  const chip = document.createElement("span");
+  chip.className = "chip";
+  chip.style.background = s.color;
+  chip.textContent = s.initials;
+  $("title").appendChild(chip);
+  renderRows();
+  show("screenBehaviors");
+}
+
+function renderRows(){
+  const rows = $("behaviorRows");
+  rows.innerHTML = "";
+  current.behaviors.forEach(b => {
+    const v = mode === "count" ? tally[b].count : tally[b].min;
+    const row = document.createElement("div");
+    row.className = "row" + (tally[b].count || tally[b].min ? " has" : "");
+    const minus = document.createElement("button");
+    minus.className = "pm minus";
+    minus.textContent = "−";
+    minus.disabled = v === 0;
+    minus.setAttribute("aria-label", "Remove one from " + b);
+    minus.addEventListener("click", () => change(b, -1));
+    const mid = document.createElement("div");
+    mid.className = "mid";
+    const name = document.createElement("div"); name.className = "name"; name.textContent = b;
+    const val = document.createElement("div"); val.className = "val";
+    val.textContent = mode === "count" ? (v === 1 ? "1 time" : v + " times") : v + " min";
+    const others = mode === "count" ? tally[b].min : tally[b].count;
+    if (others) {
+      const note = document.createElement("div");
+      note.style.cssText = "font-size:.75rem;font-weight:800;color:#555";
+      note.textContent = mode === "count" ? "+ " + others + " min" : "+ " + others + (others === 1 ? " time" : " times");
+      mid.append(name, val, note);
+    } else {
+      mid.append(name, val);
+    }
+    const plus = document.createElement("button");
+    plus.className = "pm plus";
+    plus.textContent = "+";
+    plus.setAttribute("aria-label", "Add one to " + b);
+    plus.addEventListener("click", () => change(b, 1));
+    row.append(minus, mid, plus);
+    rows.appendChild(row);
+  });
+  $("btnSubmit").disabled = !pendingItems().length;
+}
+
+function change(b, d){
+  const k = mode === "count" ? "count" : "min";
+  tally[b][k] = Math.max(0, Math.min(999, tally[b][k] + d));
+  if (navigator.vibrate) navigator.vibrate(15);
+  renderRows();
+}
+
+function setMode(m){
+  mode = m;
+  $("modeCount").setAttribute("aria-pressed", String(m === "count"));
+  $("modeTime").setAttribute("aria-pressed", String(m === "min"));
+  if (current) renderRows();
+}
+
+function pendingItems(){
+  const items = [];
+  if (!current) return items;
+  current.behaviors.forEach(b => {
+    if (tally[b].count) items.push({ s: current.initials, b, n: tally[b].count, t: "count" });
+    if (tally[b].min) items.push({ s: current.initials, b, n: tally[b].min, t: "min" });
+  });
+  return items;
+}
+
+function leave(){
+  const n = pendingItems().length;
+  if (n && !confirm("Throw away what you entered for " + current.initials + "? It hasn't been saved.")) return;
+  goHome();
+}
+
+function goHome(){
+  current = null;
+  $("title").textContent = "BHAVE";
+  show("screenStudents");
+}
+
+async function submit(){
+  const items = pendingItems();
+  if (!items.length) return;
+  const when = $("whenInput").value;
+  if (when && when > nowHHMM()) {
+    toast("Not saved: that time is later than now. Fix the time and try again.");
+    return;
+  }
+  // Save on the phone right away; it's sent to the Sheet in the background (no waiting on Google)
+  const params = { action: "log", by: store.get("bhave:by") || "", items: JSON.stringify(items) };
+  if (when) params.at = when;
+  enqueue(params);
+  const who = current.initials;
+  goHome();
+  toast("✓ Saved for " + who, true);
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+
+/* ---------- outbox: entries saved on the phone until the Sheet confirms them ---------- */
+const OUTBOX_KEY = "bhave:outbox";
+const NO_RETRY = ["bad-data", "bad-time", "future-time"]; // the Sheet will never accept these
+function readOutbox(){ try { return JSON.parse(store.get(OUTBOX_KEY) || "[]"); } catch { return []; } }
+function writeOutbox(box){ store.set(OUTBOX_KEY, JSON.stringify(box)); renderPending(); }
+
+function enqueue(params){
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const box = readOutbox();
+  box.push({ id, params: { ...params, id, ent: Date.now() }, tries: 0, next: 0, since: Date.now() });
+  writeOutbox(box);
+  sendOutbox();
+}
+
+let sending = false, retryTimer = null;
+async function sendOutbox(){
+  if (sending) return;
+  sending = true;
+  clearTimeout(retryTimer);
+  try {
+    for (;;) {
+      const box = readOutbox();
+      const item = box.find(e => e.next <= Date.now());
+      if (!item) break;
+      try {
+        await request(item.params);
+        writeOutbox(readOutbox().filter(e => e.id !== item.id));
+      } catch (err) {
+        if (NO_RETRY.includes(err.message)) {
+          writeOutbox(readOutbox().filter(e => e.id !== item.id));
+          toast("One entry couldn't be saved (" + (err.message === "future-time" ? "time later than now" : err.message) + "). Please enter it again.");
+          continue;
+        }
+        // Try again later: 5s, 15s, 30s, then every minute
+        const latest = readOutbox();
+        const e = latest.find(x => x.id === item.id);
+        if (e) { e.tries++; e.next = Date.now() + ([5000, 15000, 30000][e.tries - 1] || 60000); writeOutbox(latest); }
+        break;
+      }
+    }
+  } finally {
+    sending = false;
+    const box = readOutbox();
+    if (box.length) {
+      const wait = Math.max(1000, Math.min(...box.map(e => e.next)) - Date.now());
+      retryTimer = setTimeout(sendOutbox, wait);
+    }
+  }
+}
+
+function renderPending(){
+  const box = readOutbox();
+  const chip = $("pendingChip");
+  chip.hidden = box.length === 0;
+  if (!box.length) return;
+  const stuck = box.some(e => Date.now() - e.since > 60000);
+  chip.classList.toggle("stuck", stuck);
+  chip.textContent = (stuck ? "⚠ " : "⏳ ") + box.length + (stuck ? " waiting to send" : " sending");
+}
+
+let toastTimer;
+function toast(text, home){
+  const t = $("toast");
+  t.textContent = text;
+  t.classList.toggle("home", !!home);
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), text.startsWith("Not saved") ? 6000 : 2500);
+}
+
+/* ---------- who is using this phone ---------- */
+function setWho(by){
+  store.set("bhave:by", by);
+  $("btnWho").textContent = by;
+  show("screenStudents");
+}
+// Staff names come from the Sheet's Staff tab
+function renderStaff(){
+  const list = $("staffList");
+  list.innerHTML = "";
+  staff.forEach(name => {
+    const b = document.createElement("button");
+    b.className = "big";
+    b.textContent = name;
+    b.addEventListener("click", () => setWho(name));
+    list.appendChild(b);
+  });
+  $("staffMsg").hidden = staff.length > 0;
+  $("staffMsg").textContent = "Loading names…";
+}
+$("btnWho").addEventListener("click", () => show("screenWho"));
+
+$("btnBack").addEventListener("click", leave);
+$("btnCancel").addEventListener("click", leave);
+$("btnSubmit").addEventListener("click", submit);
+// Opening the app, coming back to it, regaining signal, or tapping the chip all mean "try now"
+function retryNow(){
+  const box = readOutbox();
+  if (!box.length) return;
+  box.forEach(e => e.next = 0);
+  writeOutbox(box);
+  sendOutbox();
+}
+$("pendingChip").addEventListener("click", retryNow);
+window.addEventListener("online", retryNow);
+setInterval(() => { renderPending(); sendOutbox(); }, 20000);
+$("whenInput").addEventListener("change", () => document.querySelector(".when").classList.add("edited"));
+$("modeCount").addEventListener("click", () => setMode("count"));
+$("modeTime").addEventListener("click", () => setMode("min"));
+window.addEventListener("beforeunload", e => { if (pendingItems().length) { e.preventDefault(); e.returnValue = ""; } });
+
+// Start: show cached students instantly, then refresh from the Sheet
+const by = store.get("bhave:by");
+if (by) { $("btnWho").textContent = by; show("screenStudents"); } else { show("screenWho"); }
+renderStudents();
+renderStaff();
+loadStudents();
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  retryNow();
+  if (!current) loadStudents();
+});
+renderPending();
+retryNow();
+</script>
+</body>
+</html>
